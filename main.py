@@ -48,54 +48,54 @@ def main():
         ERROR(f'Obteniendo los empleados | El archivo "{ARC_EMPLEADOS}" no existe.\n')
         return codigo_error()
     
-    if (registros_empleados := obtener_registros(ARC_EMPLEADOS)) is None:
-        ERROR(f'No se pudo leer el archivo "{ARC_EMPLEADOS}"')
-        return codigo_error()
-        
     # Cargar archivo de sus contraseñas
     if not ARC_CONTRASENAS.exists():
         ERROR(f'Obteniendo las contraseñas | El archivo "{ARC_CONTRASENAS}"')
+        return codigo_error()
+
+    if (registros_empleados := obtener_registros(ARC_EMPLEADOS)) is None:
+        ERROR(f'No se pudo leer el archivo "{ARC_EMPLEADOS}"')
         return codigo_error()
     
     if (registros_contrasenas := obtener_registros(ARC_CONTRASENAS)) is None:
         ERROR(f'No se pudo leer el archivo {ARC_CONTRASENAS}')
         return codigo_error()
     
-    empleados:    dict[str, Empleado] = {}
-    empleados_id: dict[str, str]      = {} # Mapa inverso
-    contrasenas:  dict[str, str]      = {}
+    empleados    = dict[str, Empleado]()
+    empleados_id = dict[str, str]() # Mapa inverso
+    contrasenas  = dict[str, str]()
     
     # Carga de los empleados y sus ids con un mapa inverso
     for i, registro in enumerate(registros_empleados):
-        if len(registro) != 5:
+        try:
+            id, dni, nombres, apellidos, fecha_nacimiento = registro
+        except:
             ERROR(f'En "{ARC_EMPLEADOS}" | El registro {i + 1} -> "{', '.join(registro)}" no tiene el formato correcto.')
             print('    Formato: ID, DNI, NOMBRES, APELLIDOS, FECHA DE NACIMIENTO')
             return codigo_error()
-
-        id, dni, datos = registro[0], registro[1], registro[2:]
-        empleados[id]     = Empleado(id, dni, *datos)
+        empleados   [id ] = Empleado(id, dni, nombres, apellidos, fecha_nacimiento)
         empleados_id[dni] = id
-        
         if empleados[id].rango is None:
             ERROR(f'En "{ARC_EMPLEADOS}" | El registro {i + 1} no tiene un ID valido')
             return codigo_error()
         
     # Carga de las contraseñas
     for i, registro in enumerate(registros_contrasenas):
-        if len(registro) != 2:
-            ERROR(f'En "{ARC_CONTRASENAS}" | El registro {i + 1} no tiene el formato correcto.')
+        try:
+            dni, contrasena = registro
+        except:
+            ERROR(f'En "{ARC_CONTRASENAS}" | El registro {i + 1} no tiene el formato correcto.', False)
             print('    Formato: DNI, CONTRASEÑA')
             return codigo_error()
-        
-        dni, contrasena = registro
         if dni not in empleados_id:
-            ERROR(f'En "{ARC_CONTRASENAS}" |"{dni}" no cohincide con ningun empleado en el sistema.\n')
+            ERROR(f'En "{ARC_CONTRASENAS}" | "{dni}" no cohincide con ningun empleado en el sistema.\n', False)
             return codigo_error()
         contrasenas[dni] = contrasena
         
-    # LOOP PRINCIPAL
     usuario = None
+    # LOOP PRINCIPAL
     while True:
+        # Si no hay un usuario
         if usuario is None:
             system('cls')
             print('[INICIO DE SESION]\n')
@@ -114,9 +114,9 @@ def main():
                     FALLO(f'La contraseña "{contrasena}" no coincide con el DNI "{dni}".\n')
                     continue
                 
-                # Hace que el usuario sea un empleado
                 usuario = empleados[empleados_id[dni]]
-                EXITO(f'Bienvenida/o {usuario} tu ID es {usuario.ID}.\n')
+                EXITO(f'Bienvenida/o {usuario}.\n', False)
+                EXITO(f'Tu ID es {usuario.ID}')
                 
                 # Crea el archivo de entradas y salidas
                 if not (archivo_entradas := obtener_archivo_id(usuario.ID, False)).exists():
