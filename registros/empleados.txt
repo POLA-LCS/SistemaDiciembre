@@ -1,0 +1,10 @@
+E1, 123, Ana Maria   , Lopez Garcia   , 01/01/2001
+E2, 654, Sofia       , Perez Morales  , 15/09/1990
+E3, 879, Paula Andrea, Gutierrez Lopez, 30/06/1999
+E4, 546, Alejandro   , Torres         , 18/04/1975
+J1, 456, Carlos      , Fernandez      , 12/05/1985
+J2, 987, Martin      , Sanchez        , 07/07/1982
+J3, 135, Diego       , Romero         , 05/12/1980
+G1, 789, Beatriz     , Ruiz           , 22/11/1992
+G2, 213, Laura Ines  , Rodriguez      , 20/10/1995
+D1, 321, Juan Ignacio, Gomez          , 03/03/1978
