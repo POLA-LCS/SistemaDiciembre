@@ -32,7 +32,6 @@ def calcular_horas_trabajadas(entradas: list[Registro], salidas: list[Registro])
 # MENU DE INICIO DE SESION
 def mostrar_menu_inicio():
     print('1. Ingresar')
-    print('2. Salir')
 
 # MENU SI YA SE INICIO SESION
 def mostrar_menu():
@@ -46,25 +45,25 @@ def main():
     # Cargar archivo de empleados
     if not ARC_EMPLEADOS.exists():
         ERROR(f'Obteniendo los empleados | El archivo "{ARC_EMPLEADOS}" no existe.\n')
-        return codigo_error()
-    
+        return 1
+
     # Cargar archivo de sus contraseñas
     if not ARC_CONTRASENAS.exists():
         ERROR(f'Obteniendo las contraseñas | El archivo "{ARC_CONTRASENAS}"')
-        return codigo_error()
+        return 1
 
     if (registros_empleados := obtener_registros(ARC_EMPLEADOS)) is None:
         ERROR(f'No se pudo leer el archivo "{ARC_EMPLEADOS}"')
-        return codigo_error()
-    
+        return 1
+
     if (registros_contrasenas := obtener_registros(ARC_CONTRASENAS)) is None:
         ERROR(f'No se pudo leer el archivo {ARC_CONTRASENAS}')
-        return codigo_error()
-    
+        return 1
+
     empleados    = dict[str, Empleado]()
     empleados_id = dict[str, str]() # Mapa inverso
     contrasenas  = dict[str, str]()
-    
+
     # Carga de los empleados y sus ids con un mapa inverso
     for i, registro in enumerate(registros_empleados):
         try:
@@ -72,69 +71,69 @@ def main():
         except:
             ERROR(f'En "{ARC_EMPLEADOS}" | El registro {i + 1} -> "{', '.join(registro)}" no tiene el formato correcto.')
             print('    Formato: ID, DNI, NOMBRES, APELLIDOS, FECHA DE NACIMIENTO')
-            return codigo_error()
+            return 1
         empleados   [id ] = Empleado(id, dni, nombres, apellidos, fecha_nacimiento)
         empleados_id[dni] = id
         if empleados[id].rango is None:
             ERROR(f'En "{ARC_EMPLEADOS}" | El registro {i + 1} no tiene un ID valido')
-            return codigo_error()
-        
+            return 1
+
     # Carga de las contraseñas
     for i, registro in enumerate(registros_contrasenas):
         try:
             dni, contrasena = registro
         except:
-            ERROR(f'En "{ARC_CONTRASENAS}" | El registro {i + 1} no tiene el formato correcto.', False)
+            ERROR(f'En "{ARC_CONTRASENAS}" | El registro {i + 1} no tiene el formato correcto.', presionar=False)
             print('    Formato: DNI, CONTRASEÑA')
-            return codigo_error()
+            return 1
         if dni not in empleados_id:
-            ERROR(f'En "{ARC_CONTRASENAS}" | "{dni}" no cohincide con ningun empleado en el sistema.\n', False)
-            return codigo_error()
+            ERROR(f'En "{ARC_CONTRASENAS}" | "{dni}" no cohincide con ningun empleado en el sistema.\n', presionar=False)
+            return 1
         contrasenas[dni] = contrasena
-        
+
     usuario = None
     # LOOP PRINCIPAL
     while True:
         # Si no hay un usuario
         if usuario is None:
             system('cls')
-            print('[INICIO DE SESION]\n')
+            print('[INICIO]\n')
             mostrar_menu_inicio()
             opcion = input('>> ')
-            
+
             # INICIAR SESION
             if opcion == '1':
-                dni = input('Ingrese su DNI: ')
+                dni = input('DNI       : ')
                 if dni not in empleados_id:
                     FALLO(f'El DNI "{dni}" no esta registrado en el sistema.\n')
                     continue
-                
-                contrasena = input('Ingrese su contraseña: ')
+
+                contrasena = input('CONTRASEÑA: ')
                 if contrasena != contrasenas[dni]:
                     FALLO(f'La contraseña "{contrasena}" no coincide con el DNI "{dni}".\n')
                     continue
-                
+
                 usuario = empleados[empleados_id[dni]]
-                EXITO(f'Bienvenida/o {usuario}.\n', False)
-                EXITO(f'Tu ID es {usuario.ID}')
-                
+
                 # Crea el archivo de entradas y salidas
                 if not (archivo_entradas := obtener_archivo_id(usuario.ID, False)).exists():
                     archivo_entradas.write_text('')
-                    
+
                 if not (archivo_salidas := obtener_archivo_id(usuario.ID, True)).exists():
                     archivo_salidas.write_text('')
-                
+
                 # Obtiene los registros de entradas y salidas
                 if (entradas := obtener_registros(archivo_entradas)) is None:
                     ERROR('No se pudo obtener el archivo de entradas.\n')
-                    continue
-                
+                    return 1
+
                 if (salidas := obtener_registros(archivo_salidas) ) is None:
                     ERROR('No se pudo obtener el archivo de salidas.\n')
-            # SALIR
-            elif opcion == '2':
-                break
+                    return 1
+
+                EXITO(f'Bienvenida/o {usuario}.')
+
+            # OPCION INVALIDA
             else:
                 FALLO('Opcion invalida.\n')
         else:
@@ -142,34 +141,31 @@ def main():
             print(f'[USUARIO {usuario.ID} | {usuario.DNI}]\n')
             mostrar_menu()
             opcion = input('>> ')
-            
+
             # REGISTRAR ENTRADA
             if opcion == '1':
-                # Entró mas veces de las que salió
                 if len(entradas) > len(salidas):
-                    FALLO('No saliste aun.\n')
+                    FALLO('No se registro una salida aun.\n')
                     continue
-                
+
                 resultado = registrar_entrada_salida(usuario.ID, False)
-                print(resultado)
                 if resultado is None:
                     FALLO('No se pudo registrar la entrada.\n')
                 else:
-                    EXITO(f'Entrada registrada: "{resultado}"\n')
+                    EXITO(f'Entrada registrada: "{resultado[1]}" para {resultado[0]}\n')
                     entradas.append(tuple([dato.strip() for dato in resultado.split(',')]))
 
             # REGISTRAR SALIDA
             elif opcion == '2':
                 if len(salidas) >= len(entradas):
-                    FALLO('No entraste aun.\n')
+                    FALLO('No se registro una entrada aun.\n')
                     continue
-                
+
                 resultado = registrar_entrada_salida(usuario.ID, True)
-                print(resultado)
                 if resultado is None:
                     FALLO('No se pudo registrar la salida.\n')
                 else:
-                    EXITO(f'Salida registrada: "{resultado}"\n')
+                    EXITO(f'Salida registrada: "{resultado[1]}" para {resultado[0]}\n')
                     salidas.append(tuple([dato.strip() for dato in resultado.split(',')]))
 
             # HORAS TRABAJADAS
@@ -179,42 +175,47 @@ def main():
                     continue
 
                 if empleado.ID != usuario.ID and empleado.rango >= usuario.rango:
-                    FALLO('No podes consultar las horas trabajadas de un empleado no subordinado.\n')     
+                    FALLO('No podes consultar las horas trabajadas de un empleado no subordinado.\n')
                     continue
-                
+
                 horas = calcular_horas_trabajadas(entradas, salidas)
-                
+
                 if horas is None:
                     EXITO(f'El empleado con ID {empleado.ID} no ha trabajado este mes.\n')
                     continue
-                
+
                 EXITO(f'Horas trabajadas por {empleado.apellidos}: {horas}')
-            
+
+            # Dias presentes
             elif opcion == '4':
                 if len(salidas) == 0:
                     EXITO('No hay dias registrados.\n')
                     continue
 
-                EXITO('Dias presentes:', False)
+                EXITO('Dias presentes:', presionar=False)
                 dias_trabajados = set()
                 for i, salida in enumerate(salidas):
                     try:
                         dia, hora = salida
                     except:
-                        ERROR(f'La salida {i + 1} no tiene el formato correcto.\n    (DIA, HORA)')
-                        break
-                    
+                        ERROR(f'La salida {i + 1} no tiene el formato correcto.', presionar=False)
+                        print('    Formato: (DIA, HORA)')
+                        return 1
+
                     if dia not in dias_trabajados:
                         print('-', dia)
                         dias_trabajados.add(dia)
-                                        
+
             elif opcion == '5':
                 usuario = None
                 EXITO('Saliste con exito.\n')
             else:
                 FALLO('Opcion invalida.\n')
-            
-        
+
+
 if __name__ == '__main__':
-    salida = main()
+    try:
+        salida = main()
+    except EOFError:
+        exit(1)
     exit(salida)
