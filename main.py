@@ -1,5 +1,6 @@
 from modulos import *
 from datetime import datetime as date, timedelta
+import calendar
 from os import system
 
 FORMATO_HORA = '%H:%M:%S'
@@ -39,7 +40,8 @@ def mostrar_menu():
     print('2. Salida')
     print('3. Horas trabajadas')
     print('4. Dias presentes')
-    print('5. Salir')
+    print('5. Dias ausentes')
+    print('6. Salir')
 
 def main():
     # Cargar archivo de empleados
@@ -153,7 +155,7 @@ def main():
                     FALLO('No se pudo registrar la entrada.\n')
                 else:
                     EXITO(f'Entrada registrada: "{resultado[1]}" para {resultado[0]}\n')
-                    entradas.append(tuple([dato.strip() for dato in resultado.split(',')]))
+                    entradas.append(resultado)
 
             # REGISTRAR SALIDA
             elif opcion == '2':
@@ -166,7 +168,7 @@ def main():
                     FALLO('No se pudo registrar la salida.\n')
                 else:
                     EXITO(f'Salida registrada: "{resultado[1]}" para {resultado[0]}\n')
-                    salidas.append(tuple([dato.strip() for dato in resultado.split(',')]))
+                    salidas.append(resultado)
 
             # HORAS TRABAJADAS
             elif opcion == '3':
@@ -174,11 +176,17 @@ def main():
                     FALLO('El ID ingresado no existe.\n')
                     continue
 
-                if empleado.ID != usuario.ID and empleado.rango >= usuario.rango:
-                    FALLO('No podes consultar las horas trabajadas de un empleado no subordinado.\n')
-                    continue
+                if empleado.ID != usuario.ID:
+                    if empleado.rango >= usuario.rango:
+                        FALLO('No podes consultar las horas trabajadas de un empleado no subordinado.\n')
+                        continue
+                    entradas_pedidas = obtener_registros(obtener_archivo_id(empleado.ID, False))
+                    salidas_pedidas = obtener_registros(obtener_archivo_id(empleado.ID, True))
+                else:
+                    entradas_pedidas = entradas
+                    salidas_pedidas = salidas
 
-                horas = calcular_horas_trabajadas(entradas, salidas)
+                horas = calcular_horas_trabajadas(entradas_pedidas, salidas_pedidas)
 
                 if horas is None:
                     EXITO(f'El empleado con ID {empleado.ID} no ha trabajado este mes.\n')
@@ -202,16 +210,47 @@ def main():
                         print('    Formato: (DIA, HORA)')
                         return 1
 
+                    EXITO('Dias trabajados', presionar=False)
                     if dia not in dias_trabajados:
                         print('-', dia)
                         dias_trabajados.add(dia)
+                    EXITO('')
 
             elif opcion == '5':
+                if (empleado := empleados.get(input('ID >> '))) is None:
+                    FALLO('El ID ingresado no existe.\n')
+                    continue
+
+                if empleado.ID != usuario.ID:
+                    if empleado.rango >= usuario.rango:
+                        FALLO('No podes consultar las horas trabajadas de un empleado no subordinado.\n')
+                        continue
+                    entradas_pedidas = obtener_registros(obtener_archivo_id(empleado.ID, False))
+                else:
+                    entradas_pedidas = entradas
+
+                hoy = date.now()
+                dia_maximo = calendar.monthrange(hoy.year, hoy.month)
+
+                print(dia_maximo)
+
+                EXITO('Dias ausentes:', presionar=False)
+                dias_ausentes = [str(dia) for dia in range(1, dia_maximo[1] + 1)]
+                for entrada in entradas_pedidas:
+                    dia, _ = entrada
+                    if dia in dias_ausentes:
+                        dias_ausentes.remove(dia)
+
+                for dia in dias_ausentes:
+                    print('-', dia)
+                    
+                EXITO('')
+                        
+            elif opcion == '6':
                 usuario = None
                 EXITO('Saliste con exito.\n')
             else:
                 FALLO('Opcion invalida.\n')
-
 
 if __name__ == '__main__':
     try:
